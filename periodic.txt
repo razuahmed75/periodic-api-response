@@ -1,0 +1,107 @@
+import 'dart:async';
+
+class ApiProvider extends ChangeNotifier {
+  late ApiResponse _currentResponse;
+
+  ApiResponse get currentResponse => _currentResponse;
+
+  // Adjust the duration based on how frequently you want to check for changes
+  final Duration _fetchInterval = Duration(seconds: 30);
+  late Timer _timer;
+
+  ApiProvider() {
+    // Start the timer when the provider is created
+    _timer = Timer.periodic(_fetchInterval, (Timer t) => fetchData());
+  }
+
+  Future<void> fetchData() async {
+    final response = await http.get(Uri.parse('your_api_url'));
+    final jsonData = json.decode(response.body);
+    final newResponse = ApiResponse.fromJson(jsonData);
+
+    if (newResponse != _currentResponse) {
+      _currentResponse = newResponse;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Cancel the timer when the provider is disposed
+    _timer.cancel();
+    super.dispose();
+  }
+}
+--------------------------------------
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+class ApiResponse {
+  final String data;
+
+  ApiResponse({required this.data});
+
+  factory ApiResponse.fromJson(Map<String, dynamic> json) {
+    return ApiResponse(data: json['data']);
+  }
+}
+class ApiController extends GetxController {
+  Rx<ApiResponse> _currentResponse = ApiResponse(data: '').obs;
+  ApiResponse get currentResponse => _currentResponse.value;
+
+  final Duration _fetchInterval = Duration(seconds: 30);
+  late Timer _timer;
+
+  @override
+  void onInit() {
+    // Start the timer when the controller is initialized
+    _timer = Timer.periodic(_fetchInterval, (Timer t) => fetchData());
+    super.onInit();
+  }
+
+  Future<void> fetchData() async {
+    final response = await http.get(Uri.parse('your_api_url'));
+    final jsonData = json.decode(response.body);
+    final newResponse = ApiResponse.fromJson(jsonData);
+
+    if (newResponse != currentResponse) {
+      _currentResponse.value = newResponse;
+    }
+  }
+
+  @override
+  void onClose() {
+    // Cancel the timer when the controller is closed
+    _timer.cancel();
+    super.onClose();
+  }
+}
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  final ApiController apiController = ApiController();
+
+  @override
+  Widget build(BuildContext context) {
+    return GetMaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('API Response Checker'),
+        ),
+        body: Center(
+          child: Obx(
+            () {
+              final response = apiController.currentResponse;
+              return Text('API Response: ${response.data}');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
