@@ -1,0 +1,1 @@
+If you want to call the API regardless of whether the widget is rebuilt or not, and you want to continuously check for changes in the API response, you might consider using a periodic task like a timer. Here's an example using the Timer class to periodically fetch data:
